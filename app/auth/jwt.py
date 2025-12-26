@@ -162,7 +162,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str) 
         access_token: JWT access token
         refresh_token: JWT refresh token
     """
-    # Set access token cookie
+    # Set access token cookie - available for all paths
     response.set_cookie(
         key=settings.ACCESS_TOKEN_COOKIE_NAME,
         value=access_token,
@@ -171,9 +171,10 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str) 
         secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
         domain=settings.COOKIE_DOMAIN,
+        path="/",  # Available for all API endpoints
     )
 
-    # Set refresh token cookie
+    # Set refresh token cookie - only for auth endpoints
     response.set_cookie(
         key=settings.REFRESH_TOKEN_COOKIE_NAME,
         value=refresh_token,
@@ -182,7 +183,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str) 
         secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
         domain=settings.COOKIE_DOMAIN,
-        path="/auth",  # Only accessible for auth endpoints
+        path="/",  # Changed to / so refresh works from any page
     )
 
 
@@ -195,11 +196,12 @@ def clear_auth_cookies(response: Response) -> None:
     response.delete_cookie(
         key=settings.ACCESS_TOKEN_COOKIE_NAME,
         domain=settings.COOKIE_DOMAIN,
+        path="/",
     )
     response.delete_cookie(
         key=settings.REFRESH_TOKEN_COOKIE_NAME,
         domain=settings.COOKIE_DOMAIN,
-        path="/auth",
+        path="/",
     )
 
 

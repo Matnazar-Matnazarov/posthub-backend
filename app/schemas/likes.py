@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
+from typing import Optional
 
 
 class LikesBase(BaseModel):
@@ -16,6 +17,14 @@ class LikesCreate(LikesBase):
     pass
 
 
+class LikesToggle(BaseModel):
+    """Like toggle response."""
+    
+    liked: bool
+    likes_count: int
+    dislikes_count: int
+
+
 class Likes(LikesBase):
     """Likes response schema."""
 
@@ -25,3 +34,11 @@ class Likes(LikesBase):
     created: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LikesStats(BaseModel):
+    """Likes statistics for a post."""
+    
+    likes_count: int = 0
+    dislikes_count: int = 0
+    user_liked: Optional[bool] = None  # None if not logged in, True/False otherwise
