@@ -8,7 +8,7 @@ from .user import User
 
 
 class Comment(Model):
-    id = fields.BigIntField(pk=True)
+    id = fields.BigIntField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="comments")
     post = fields.ForeignKeyField("models.Post", related_name="comments")
     comment = fields.TextField()

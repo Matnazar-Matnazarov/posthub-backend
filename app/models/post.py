@@ -8,7 +8,7 @@ from .user import User
 
 
 class Post(Model):
-    id = fields.BigIntField(pk=True)
+    id = fields.BigIntField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="posts")
     name = fields.CharField(max_length=255)
     title = fields.CharField(max_length=255)
