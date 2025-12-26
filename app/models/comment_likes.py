@@ -8,7 +8,7 @@ from .user import User
 
 
 class CommentLikes(Model):
-    id = fields.BigIntField(pk=True)
+    id = fields.BigIntField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="comment_likes")
     comment = fields.ForeignKeyField("models.Comment", related_name="comment_likes")
     is_like = fields.BooleanField(default=True)

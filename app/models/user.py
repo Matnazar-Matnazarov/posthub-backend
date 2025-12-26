@@ -1,68 +1,84 @@
+"""User model for authentication and authorization."""
+
 from tortoise.models import Model
 from tortoise import fields
 from passlib.hash import bcrypt
-from app.config import settings
-from datetime import datetime
-from fastadmin import TortoiseModelAdmin, register
-from uuid import UUID
 
 
 class User(Model):
-    id = fields.BigIntField(pk=True)
-    username = fields.CharField(max_length=255, unique=True)
+    """User model for authentication and authorization.
+
+    Attributes:
+        id: Primary key
+        username: Unique username
+        password: Hashed password
+        first_name: User's first name
+        last_name: User's last name
+        email: Unique email address
+        is_active: Whether user account is active
+        is_staff: Whether user has staff privileges
+        is_superuser: Whether user has superuser privileges
+        picture: Optional profile picture URL
+        phone: Optional phone number
+        created: Creation timestamp
+        updated: Last update timestamp
+    """
+
+    id = fields.BigIntField(primary_key=True)
+    username = fields.CharField(max_length=255, unique=True, db_index=True)
     password = fields.CharField(max_length=128)
     first_name = fields.CharField(max_length=255)
     last_name = fields.CharField(max_length=255)
-    email = fields.CharField(max_length=255, unique=True)
+    email = fields.CharField(max_length=255, unique=True, db_index=True)
     is_active = fields.BooleanField(default=True)
     is_staff = fields.BooleanField(default=False)
-    is_superuser = fields.BooleanField(default=False, null=True)
+    is_superuser = fields.BooleanField(default=False)
     picture = fields.CharField(max_length=255, null=True)
     phone = fields.CharField(max_length=20, null=True)
-    created = fields.DatetimeField(
-        auto_now_add=True, default=lambda: datetime.now(settings.TIMEZONE)
-    )
-    updated = fields.DatetimeField(
-        auto_now=True, default=lambda: datetime.now(settings.TIMEZONE)
-    )
+    created = fields.DatetimeField(auto_now_add=True)
+    updated = fields.DatetimeField(auto_now=True)
 
-    posts = fields.ReverseRelation["Post"]
-    comments = fields.ReverseRelation["Comment"]
-    likes = fields.ReverseRelation["Likes"]
-    comment_likes = fields.ReverseRelation["CommentLikes"]
+    # Relationships
+    posts: fields.ReverseRelation["Post"]  # noqa: F821
+    comments: fields.ReverseRelation["Comment"]  # noqa: F821
+    likes: fields.ReverseRelation["Likes"]  # noqa: F821
+    comment_likes: fields.ReverseRelation["CommentLikes"]  # noqa: F821
 
     class Meta:
         table = "users"
-        indexes = [
-            ("is_staff",),
-            ("username", "email"),
-        ]
+        ordering = ["-created"]
 
-    def set_password(self, raw_password: str):
+    def __str__(self) -> str:
+        return f"{self.username} ({self.email})"
+
+    def set_password(self, raw_password: str) -> None:
+        """Hash and set the user's password.
+
+        Args:
+            raw_password: Plain text password
+        """
         self.password = bcrypt.hash(raw_password)
 
     def check_password(self, raw_password: str) -> bool:
-        return bcrypt.verify(raw_password, self.password)
+        """Verify a password against the stored hash.
 
+        Args:
+            raw_password: Plain text password to check
 
-@register(User)
-class UserAdmin(TortoiseModelAdmin):
-    exclude = ("password",)
-    list_display = ("id", "username", "is_superuser", "is_active")
-    list_display_links = ("id", "username")
-    list_filter = ("id", "username", "is_superuser", "is_active")
-    search_fields = ("username",)
+        Returns:
+            True if password matches, False otherwise
+        """
+        try:
+            return bcrypt.verify(raw_password, self.password)
+        except Exception:
+            return False
 
-    async def authenticate(self, username: str, password: str) -> UUID | int | None:
-        user = await User.filter(username=username).first()
-        if not user:
-            print(f"Foydalanuvchi autopilot: {username}")
-            return None
-        if not user.check_password(password):
-            print(f"Parol noto‘g‘ri: {username}")
-            return None
-        if not user.is_superuser:
-            print(f"Bu foydalanuvchi superuser em's: {username}")
-            return None
-        print(f"Muvaffaqiyatli kirish: {username}")
-        return user.id
+    @property
+    def full_name(self) -> str:
+        """Get user's full name."""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def is_admin(self) -> bool:
+        """Check if user is admin (staff or superuser)."""
+        return self.is_staff or self.is_superuser

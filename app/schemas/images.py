@@ -1,31 +1,29 @@
-from pydantic import BaseModel
+"""Images schemas for API validation."""
+
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from app.config import settings
+from typing import Optional
 
 
 class ImagesBase(BaseModel):
+    """Base images schema."""
+
     image: str
     is_active: bool = True
 
 
 class ImagesCreate(ImagesBase):
+    """Images creation schema."""
+
     pass
 
 
 class Images(ImagesBase):
+    """Images response schema."""
+
     id: int
-    post: int
+    post_id: int
     created: datetime
-    updated: datetime
+    updated: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
-    @classmethod
-    def from_orm(cls, obj):
-        data = obj.__dict__
-        data["created"] = data["created"].astimezone(settings.TIMEZONE)
-        if "updated" in data:
-            data["updated"] = data["updated"].astimezone(settings.TIMEZONE)
-        data["post"] = data["post_id"]
-        return cls(**data)
+    model_config = ConfigDict(from_attributes=True)

@@ -1,11 +1,14 @@
-from pydantic import BaseModel
+"""Post schemas for API validation."""
+
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from app.config import settings
+from typing import List, Optional
 from app.schemas.images import Images
-from typing import List
 
 
 class PostBase(BaseModel):
+    """Base post schema."""
+
     name: str
     title: str
     text: str
@@ -13,41 +16,29 @@ class PostBase(BaseModel):
 
 
 class PostCreate(PostBase):
+    """Post creation schema."""
+
     pass
 
 
 class Post(PostBase):
+    """Post response schema."""
+
     id: int
     user_id: int
     created: datetime
-    updated: datetime
+    updated: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
-    @classmethod
-    def from_orm(cls, obj):
-        data = obj.__dict__
-        data["created"] = data["created"].astimezone(settings.TIMEZONE)
-        if "updated" in data:
-            data["updated"] = data["updated"].astimezone(settings.TIMEZONE)
-        return cls(**data)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PostImage(PostBase):
+    """Post with images response schema."""
+
     id: int
     user_id: int
     created: datetime
-    updated: datetime
-    images: List[Images]
+    updated: Optional[datetime] = None
+    images: List[Images] = []
 
-    class Config:
-        from_attributes = True
-
-    @classmethod
-    def from_orm(cls, obj):
-        data = obj.__dict__
-        data["created"] = data["created"].astimezone(settings.TIMEZONE)
-        data["updated"] = data["updated"].astimezone(settings.TIMEZONE)
-        data["images"] = [Images.from_orm(img) for img in obj.images]
-        return cls(**data)
+    model_config = ConfigDict(from_attributes=True)

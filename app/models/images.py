@@ -8,7 +8,7 @@ from .post import Post
 
 
 class Images(Model):
-    id = fields.BigIntField(pk=True)
+    id = fields.BigIntField(primary_key=True)
     image = fields.CharField(max_length=255)
     post = fields.ForeignKeyField("models.Post", related_name="images")
     is_active = fields.BooleanField(default=True)
