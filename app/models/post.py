@@ -24,6 +24,7 @@ class Post(Model):
     images = fields.ReverseRelation["Images"]
     comments = fields.ReverseRelation["Comment"]
     likes = fields.ReverseRelation["Likes"]
+    views = fields.ReverseRelation["PostView"]
 
     class Meta:
         table = "post"

@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
+from typing import Optional, List
 
 
 class CommentBase(BaseModel):
@@ -13,8 +14,27 @@ class CommentBase(BaseModel):
 
 class CommentCreate(CommentBase):
     """Comment creation schema."""
+    
+    parent_id: Optional[int] = None
 
-    pass
+
+class CommentUpdate(BaseModel):
+    """Comment update schema."""
+    
+    comment: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class CommentUser(BaseModel):
+    """User info for comment."""
+    
+    id: int
+    username: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    picture: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Comment(CommentBase):
@@ -23,6 +43,22 @@ class Comment(CommentBase):
     id: int
     user_id: int
     post_id: int
+    parent_id: Optional[int] = None
     created: datetime
+    updated: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CommentWithUser(Comment):
+    """Comment with user info."""
+    
+    user: Optional[CommentUser] = None
+    replies: List["CommentWithUser"] = []
+    likes_count: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Update forward references
+CommentWithUser.model_rebuild()

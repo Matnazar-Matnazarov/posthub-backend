@@ -25,6 +25,7 @@ TORTOISE_ORM = {
                 "app.models.comment_likes",
                 "app.models.likes",
                 "app.models.images",
+                "app.models.post_view",
                 "aerich.models",
             ],
             "default_connection": "default",

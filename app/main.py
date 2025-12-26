@@ -7,7 +7,7 @@ import os
 import time
 import uuid
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +19,7 @@ from tortoise import Tortoise
 from app.database import init
 from app.routers import user, post, comment, comment_likes, likes, images
 from app.auth import auth
+from app.websocket import manager
 from app.config import settings
 from app.core.logging_config import setup_logging
 from app.core.exceptions import AppException
@@ -102,18 +103,6 @@ app = FastAPI(
 )
 
 
-# CORS Middleware - configured for cookie-based auth
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-    allow_methods=settings.CORS_ALLOW_METHODS,
-    allow_headers=settings.CORS_ALLOW_HEADERS,
-    expose_headers=settings.CORS_EXPOSE_HEADERS,
-    max_age=settings.CORS_MAX_AGE,
-)
-
-
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Add unique request ID to each request."""
 
@@ -127,8 +116,28 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# Add request ID middleware
+# Add request ID middleware FIRST
 app.add_middleware(RequestIDMiddleware)
+
+# CORS Middleware - MUST be added LAST (runs first in the chain)
+# This ensures CORS headers are set before any other middleware
+# For development, we allow all origins. In production, use specific origins.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Process-Time-ms", "X-Request-ID"],
+    max_age=600,
+)
 
 
 # Request timing middleware
@@ -173,12 +182,27 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle request validation errors."""
     request_id = getattr(request.state, "request_id", "unknown")
+    
+    # Convert errors to JSON serializable format
+    errors = []
+    for error in exc.errors():
+        # Create a clean error dict without non-serializable objects
+        clean_error = {
+            "type": error.get("type", "validation_error"),
+            "loc": error.get("loc", []),
+            "msg": error.get("msg", "Validation error"),
+        }
+        # Only include input if it's a simple type
+        if "input" in error and isinstance(error["input"], (str, int, float, bool, type(None))):
+            clean_error["input"] = error["input"]
+        errors.append(clean_error)
+    
     logger.warning(
-        f"[{request_id}] ValidationError: {exc.errors()} - Path: {request.url.path}"
+        f"[{request_id}] ValidationError: {errors} - Path: {request.url.path}"
     )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors(), "request_id": request_id},
+        content={"detail": errors, "request_id": request_id},
     )
 
 
@@ -223,6 +247,24 @@ async def root():
         "redoc": "/redoc",
         "admin": "/admin",
     }
+
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
+    """WebSocket endpoint for real-time notifications."""
+    await manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Keep connection alive, receive any client messages
+            data = await websocket.receive_text()
+            # Echo back for ping/pong
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)
+    except Exception as e:
+        logger.error(f"WebSocket error for user {user_id}: {e}")
+        manager.disconnect(websocket, user_id)
 
 
 @app.get("/health", summary="Health check", description="Check API health status.")

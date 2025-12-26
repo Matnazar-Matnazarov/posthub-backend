@@ -11,6 +11,7 @@ class Comment(Model):
     id = fields.BigIntField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="comments")
     post = fields.ForeignKeyField("models.Post", related_name="comments")
+    parent = fields.ForeignKeyField("models.Comment", related_name="replies", null=True)
     comment = fields.TextField()
     is_active = fields.BooleanField(default=True)
     created = fields.DatetimeField(
@@ -21,12 +22,14 @@ class Comment(Model):
     )
 
     comment_likes = fields.ReverseRelation["CommentLikes"]
+    replies: fields.ReverseRelation["Comment"]
 
     class Meta:
         table = "comment"
         indexes = [
             ("post_id",),
             ("is_active",),
+            ("parent_id",),
             ("user_id", "post_id", "is_active", "created"),
         ]
 

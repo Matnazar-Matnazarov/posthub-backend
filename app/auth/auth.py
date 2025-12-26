@@ -20,6 +20,21 @@ from app.config import settings
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+class UserInfo(BaseModel):
+    """User info for token response."""
+
+    id: int
+    username: str
+    email: str
+    first_name: str | None = None
+    last_name: str | None = None
+    is_active: bool = True
+    is_staff: bool = False
+    is_superuser: bool = False
+    picture: str | None = None
+    phone: str | None = None
+
+
 class TokenResponse(BaseModel):
     """Token response schema."""
 
@@ -27,6 +42,7 @@ class TokenResponse(BaseModel):
     refresh_token: str | None = None
     token_type: str = "bearer"
     expires_in: int
+    user: UserInfo | None = None
 
 
 class MessageResponse(BaseModel):
@@ -86,6 +102,18 @@ async def register(user: UserCreate, response: Response):
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserInfo(
+            id=new_user.id,
+            username=new_user.username,
+            email=new_user.email,
+            first_name=new_user.first_name,
+            last_name=new_user.last_name,
+            is_active=new_user.is_active,
+            is_staff=new_user.is_staff,
+            is_superuser=new_user.is_superuser,
+            picture=new_user.picture,
+            phone=new_user.phone,
+        ),
     )
 
 
@@ -134,6 +162,18 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserInfo(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_active=user.is_active,
+            is_staff=user.is_staff,
+            is_superuser=user.is_superuser,
+            picture=user.picture,
+            phone=user.phone,
+        ),
     )
 
 
@@ -191,6 +231,18 @@ async def login_json(form_data: LoginForm, response: Response):
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserInfo(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_active=user.is_active,
+            is_staff=user.is_staff,
+            is_superuser=user.is_superuser,
+            picture=user.picture,
+            phone=user.phone,
+        ),
     )
 
 
@@ -257,6 +309,18 @@ async def refresh_token(request: Request, response: Response):
         refresh_token=new_refresh_token,
         token_type="bearer",
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserInfo(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_active=user.is_active,
+            is_staff=user.is_staff,
+            is_superuser=user.is_superuser,
+            picture=user.picture,
+            phone=user.phone,
+        ),
     )
 
 
